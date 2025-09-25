@@ -183,3 +183,4 @@ cython_debug/
 /images/train
 /images/valid
 images/archive.zip
+*.pt
