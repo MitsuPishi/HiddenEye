@@ -72,19 +72,19 @@ The app supports a simple CLI for running detection:
 **Run on an image:**
 
 ```bash
-python indoor_object_detection.py --mode image --path data/test/room.jpg
+python Detection.py --mode image --path data/test/room.jpg
 ```
 
 **Run on an image with distance calibration:**
 
 ```bash
-python indoor_object_detection.py --mode image --path data/calibration.jpg --calibrate
+python Detection.py --mode image --path data/calibration.jpg --calibrate
 ```
 
 **Run live webcam detection:**
 
 ```bash
-python indoor_object_detection.py --mode webcam
+python Detection.py --mode webcam
 ```
 
 **Output:**
