@@ -63,6 +63,59 @@ focal_length = calibrate_camera(
     image_path="data/calibration.jpg"
 )
 ```
+---
+
+### Command-Line Usage
+
+The app supports a simple CLI for running detection:
+
+**Run on an image:**
+
+```bash
+python indoor_object_detection.py --mode image --path data/test/room.jpg
+```
+
+**Run on an image with distance calibration:**
+
+```bash
+python indoor_object_detection.py --mode image --path data/calibration.jpg --calibrate
+```
+
+**Run live webcam detection:**
+
+```bash
+python indoor_object_detection.py --mode webcam
+```
+
+**Output:**
+
+* Annotated image window (desktop) or live webcam feed
+* Spoken detection results (object name, distance, and direction)
+
+> Notes:
+>
+> * Calibration is optional but recommended for accurate distance estimation.
+> * The webcam mode does not require a path.
+
+---
+
+### What each argument does:
+
+1. **`--mode`**
+
+   * Accepts `"image"` or `"webcam"`
+   * Default is `"image"`
+   * Determines whether the script runs on a **single image** or **live webcam feed**
+
+2. **`--path`**
+
+   * The **path to the input image** if you are in image mode
+   * Ignored in webcam mode
+
+3. **`--calibrate`**
+
+   * Optional flag
+   * If provided, runs the **camera calibration function** first (to compute focal length for distance estimation)
 
 ---
 
