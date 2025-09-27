@@ -76,10 +76,12 @@ The list can would be extended to include more furniture.
 
 ## Roadmap
 
-* Export for **mobile inference**
-* More natural speech output (Edge-TTS, Coqui-TTS)
-* Smarter distance estimation (e.g., stereo or depth cameras)
-* Multi-language voice support
+- [ ] Fine-tune YOLOv10 on a custom indoor object dataset for higher accuracy in home/office settings
+- [ ] Deploy on mobile devices (Android/iOS) using ONNX Runtime Mobile or TensorFlow Lite
+- [ ] More natural TTS voices (Coqui-TTS, Edge-TTS, ElevenLabs) with configurable voice settings
+- [ ] Smarter distance estimation (depth estimation via monocular depth models, stereo cameras, or LiDAR integration)
+- [ ] Multi-language support for speech output
+- [ ] Voice interaction (ask the system “what’s in front of me?” and get spoken answers)
 
 ---
 
