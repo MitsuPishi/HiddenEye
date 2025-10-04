@@ -7,13 +7,16 @@ indoor_object_detection_tts.py
 - Works with images or live webcam
 """
 
+import os
 import cv2
 import pyttsx3
 from ultralytics import YOLO
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
-MODEL_PATH = "YOLOv10x.pt"   # replace with yolov10s/10m/10l if needed
+# Resolve model path relative to this file, and fix case to match repository
+_HERE = os.path.dirname(__file__)
+DEFAULT_MODEL_PATH = os.path.join(_HERE, "yolov10x.pt")   # replace with yolov10s/10m/10l if needed
 KNOWN_WIDTHS = {
     "person": 0.5,
     "cup": 0.08,
@@ -45,6 +48,24 @@ def tts(names: List[str], engine=None):
         engine.runAndWait()
     except Exception as e:
         print("TTS error:", e)
+
+
+class Detector:
+    """Reusable detector decoupled from UI/TTS for mobile integration."""
+
+    def __init__(self, model_path: Optional[str] = None, score_threshold: float = 0.5):
+        self.model_path = model_path or DEFAULT_MODEL_PATH
+        self.score_threshold = score_threshold
+        self.model = YOLO(self.model_path)
+
+    def infer(self, image_bgr):
+        return self.model(image_bgr)
+
+    def draw_boxes(self, image_bgr, results) -> Tuple[List[str], List[Tuple[str, float, str]]]:
+        return draw_boxes(image_bgr, results, self.score_threshold)
+
+    def extract_names(self, image_bgr, results) -> List[str]:
+        return extract_names(image_bgr, results, self.score_threshold)
 
 def calibrate_camera(known_distance: float, known_width: float, image_path: str) -> float:
     """
@@ -157,32 +178,37 @@ def extract_names(image_bgr, results, score_threshold=0.5):
     return names
 
 # ---------------------- Modes ----------------------
-def run_image_mode(input_path: str, score: float = 0.5, output_path: str = None):
-    model = YOLO(MODEL_PATH)
+def run_image_mode(input_path: str, score: float = 0.5, output_path: str = None, model_path: Optional[str] = None):
+    detector = Detector(model_path=model_path, score_threshold=score)
     img = cv2.imread(input_path)
     if img is None:
         print(f"Error: could not read {input_path}")
         return
-    results = model(img)
-    drawn = draw_boxes(img, results, score)
+    results = detector.infer(img)
+    drawn = detector.draw_boxes(img, results)
     if output_path:
         cv2.imwrite(output_path, drawn)
         print(f"Wrote annotated image to {output_path}")
     else:
-        names = extract_names(img ,results, score)
+        names = detector.extract_names(img, results)
         tts(names)
         cv2.imshow('detected', drawn)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
 
-def run_webcam_mode(score: float = 0.5, frame_resize: float = 0.6, frame_skip: int = 3):
-    model = YOLO(MODEL_PATH)
+def run_webcam_mode(score: float = 0.5, frame_resize: float = 0.6, frame_skip: int = 3, model_path: Optional[str] = None):
+    detector = Detector(model_path=model_path, score_threshold=score)
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("ERROR: Could not open webcam")
         return
-    engine = None
+    # Initialize TTS engine once and reuse
+    engine = pyttsx3.init()
+    engine.setProperty('rate', 150)
+    voices = engine.getProperty('voices')
+    if len(voices) > 1:
+        engine.setProperty('voice', voices[1].id)
     last_spoken = []
     frame_idx = 0
     try:
@@ -200,16 +226,14 @@ def run_webcam_mode(score: float = 0.5, frame_resize: float = 0.6, frame_skip: i
                 small = cv2.resize(frame, (0, 0), fx=frame_resize, fy=frame_resize)
             else:
                 small = frame
-            results = model(small)
-            out_small = draw_boxes(small, results, score)
-            names = extract_names(small , results, score)
+            results = detector.infer(small)
+            out_small = detector.draw_boxes(small, results)
+            names = detector.extract_names(small, results)
 
-            
             if names and names != last_spoken:
                 tts(names, engine)
                 last_spoken = names
             cv2.imshow('webcam', out_small)
-            cv2.waitKey(0)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
     except KeyboardInterrupt:
@@ -227,6 +251,7 @@ if __name__ == "__main__":
                     help="Run detection on a single image or webcam stream")
     parser.add_argument("--path", type=str,
                     help="Path to input image if mode=image (required for image mode)")
+    parser.add_argument("--model", type=str, default=None, help="Path to model file (optional)")
     parser.add_argument("--calibrate", action="store_true",
                     help="Run calibration before detection (for distance estimation)")
     args = parser.parse_args()
@@ -235,6 +260,6 @@ if __name__ == "__main__":
         FOCAL_LENGTH = calibrate_camera(known_distance=50, known_width=KNOWN_WIDTH, image_path=args.path)
 
     if args.mode == "image" and args.path:
-        run_image_mode(args.path)
+        run_image_mode(args.path, model_path=args.model)
     else:
-        run_webcam_mode()
+        run_webcam_mode(model_path=args.model)

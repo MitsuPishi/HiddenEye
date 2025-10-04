@@ -178,3 +178,4 @@ cython_debug/
 /images/valid
 images/archive.zip
 *.pt
+README_mobile.md
